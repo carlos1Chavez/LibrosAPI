@@ -70,9 +70,23 @@ def edit(id):
         autor = request.form['autor']
         response = requests.put(f"{API_URL}/{id}", json={'libroname': libroname, 'autor': autor})
         return redirect(url_for('index'))
+    
     else:
         response = requests.get(f"{API_URL}/{id}")
-        libro = response.json() if response.status_code == 200 else None
+
+        if response.status_code != 200:
+            return f"Error al obtener datos del libro. Código: {response.status_code}", 500
+
+        try:
+            libro = response.json()
+        except ValueError:
+            return f"Error: No se pudo convertir la respuesta en JSON. Respuesta: {response.text}", 500
+
+        libro = libro["data"] if isinstance(libro, dict) and "data" in libro else libro
+
+        if isinstance(libro, dict) and "idlibro" in libro:
+            libro["id"] = libro.pop("idlibro")
+
         return render_template('edit.html', libro=libro)
 
 @app.route('/delete/<int:id>')
